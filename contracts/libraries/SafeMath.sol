@@ -1,5 +1,5 @@
 //SPDX-License-Identifier: Unlicense
-pragma solidity >=0.4.2;
+pragma solidity >=0.4.25;
 
 library SafeMath {
   /**

@@ -1,5 +1,5 @@
 //SPDX-License-Identifier: Unlicense
-pragma solidity ^0.8.4;
+pragma solidity >=0.4.25;
 
 interface IToken {
   function remainingMintableSupply() external view returns (uint256);

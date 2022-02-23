@@ -1,14 +1,14 @@
 //SPDX-License-Identifier: Unlicense
 pragma solidity ^0.8.4;
 
-import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
+import "@openzeppelin/contracts/access/Ownable.sol";
 import "./interfaces/ISwap.sol";
 import "./interfaces/IToken.sol";
 import "./interfaces/ITokenMint.sol";
 import "./interfaces/IDripVault.sol";
 import "./libraries/SafeMath.sol";
 
-contract FaucetV4 is OwnableUpgradeable {
+contract FaucetV4 is Ownable {
 
   using SafeMath for uint256;
 
@@ -70,7 +70,7 @@ contract FaucetV4 is OwnableUpgradeable {
   uint256 private ref_bonus;
 
   uint256 private minimumInitial;
-  uint256 private minimumAmount;
+  uint256 public minimumAmount;
 
   uint256 public deposit_bracket_size;     // @BB 5% increase whale tax per 10000 tokens... 10 below cuts it at 50% since 5 * 10
   uint256 public max_payout_cap;           // 100k DRIP or 10% of supply
@@ -90,7 +90,6 @@ contract FaucetV4 is OwnableUpgradeable {
   event Upline(address indexed addr, address indexed upline);
   event NewDeposit(address indexed addr, uint256 amount);
   event Leaderboard(address indexed addr, uint256 referrals, uint256 total_deposits, uint256 total_payouts, uint256 total_structure);
-  event DirectPayout(address indexed addr, address indexed from, uint256 amount);
   event MatchPayout(address indexed addr, address indexed from, uint256 amount);
   event BalanceTransfer(address indexed _src, address indexed _dest, uint256 _deposits, uint256 _payouts);
   event Withdraw(address indexed addr, uint256 amount);
@@ -104,14 +103,16 @@ contract FaucetV4 is OwnableUpgradeable {
 
   constructor(address _dripToken, address _dripVault) {
     dripToken = IToken(_dripToken);
+    dripVaultAddress = _dripToken;
+    tokenMint = ITokenMint(_dripToken);
     dripVault = IDripVault(_dripVault);
   }
 
   /* ========== INITIALIZER ========== */
 
-  function initialize() external initializer {
-      __Ownable_init();
-  }
+//   function initialize() external initializer {
+//       __Ownable_init();
+//   }
 
   //@dev Default payable is empty since Faucet executes trades and recieves BNB
   fallback() external payable {
@@ -159,6 +160,10 @@ contract FaucetV4 is OwnableUpgradeable {
       for(uint8 i = 0; i < ref_depth; i++) {
           ref_balances.push(_newRefBalances[i]);
       }
+  }
+
+  function setMinAmount(uint256 _amount) public onlyOwner {
+    minimumAmount = _amount;
   }
 
   /********** User Fuctions **************************************************/

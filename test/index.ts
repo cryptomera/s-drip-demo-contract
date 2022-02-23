@@ -1,19 +1,36 @@
 import { expect } from "chai";
+import { parseEther } from "ethers/lib/utils";
 import { ethers } from "hardhat";
 
-describe("Greeter", function () {
+describe("faucet", function () {
   it("Should return the new greeting once it's changed", async function () {
-    const Greeter = await ethers.getContractFactory("Greeter");
-    const greeter = await Greeter.deploy("Hello, world!");
-    await greeter.deployed();
+    const DripToken = await ethers.getContractFactory("DripToken");
+    const dripToken = await DripToken.deploy(parseEther("1000000"));
+    await dripToken.deployed();
 
-    expect(await greeter.greet()).to.equal("Hello, world!");
+    const Vault = await ethers.getContractFactory("Vault");
+    const vault = await Vault.deploy(dripToken.address);
+    await vault.deployed();
 
-    const setGreetingTx = await greeter.setGreeting("Hola, mundo!");
+    await dripToken.setVaultAddress(vault.address);
 
-    // wait until the transaction is mined
-    await setGreetingTx.wait();
 
-    expect(await greeter.greet()).to.equal("Hola, mundo!");
+    const Faucet = await ethers.getContractFactory("FaucetV4");
+    const faucet = await Faucet.deploy(
+      dripToken.address,
+      vault.address
+    );
+    await faucet.deployed();
+    
+    await faucet.setMinAmount(parseEther("10"));
+    // deposit
+    const [owner] = await ethers.getSigners();
+    const approveTx = await dripToken.approve(faucet.address, parseEther("1000000"));
+    await approveTx.wait();
+
+    const depoistTx = await faucet.deposit(owner.address, parseEther("20"));
+    await depoistTx.wait();
+
+
   });
 });

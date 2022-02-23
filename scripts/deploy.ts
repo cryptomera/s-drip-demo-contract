@@ -3,6 +3,7 @@
 //
 // When running the script with `npx hardhat run <script>` you'll find the Hardhat
 // Runtime Environment's members available in the global scope.
+import { parseEther } from "ethers/lib/utils";
 import { ethers } from "hardhat";
 
 async function main() {
@@ -14,12 +15,22 @@ async function main() {
   // await hre.run('compile');
 
   // We get the contract to deploy
-  const Greeter = await ethers.getContractFactory("Greeter");
-  const greeter = await Greeter.deploy("Hello, Hardhat!");
 
-  await greeter.deployed();
+  const DripToken = await ethers.getContractFactory("DripToken");
+  const dripToken = await DripToken.deploy(parseEther("1000000"));
+  await dripToken.deployed();
+  console.log("drip: ", dripToken.address);
 
-  console.log("Greeter deployed to:", greeter.address);
+  const Vault = await ethers.getContractFactory("Vault");
+  const vault = await Vault.deploy(dripToken.address);
+  await vault.deployed();
+  console.log("vault: ", vault.address);
+
+  const Faucet = await ethers.getContractFactory("FaucetV4");
+  const faucet = await Faucet.deploy();
+  await faucet.deployed();
+  console.log("faucet: ", faucet.address);
+
 }
 
 // We recommend this pattern to be able to use async/await everywhere

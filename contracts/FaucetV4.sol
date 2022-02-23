@@ -102,6 +102,11 @@ contract FaucetV4 is OwnableUpgradeable {
   event HeartBeat(address indexed addr, uint256 timestamp);
   event Checkin(address indexed addr, uint256 timestamp);
 
+  constructor(address _dripToken, address _dripVault) {
+    dripToken = IToken(_dripToken);
+    dripVault = IDripVault(_dripVault);
+  }
+
   /* ========== INITIALIZER ========== */
 
   function initialize() external initializer {

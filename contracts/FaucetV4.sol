@@ -178,13 +178,13 @@ contract FaucetV4 is Ownable {
 
       address _addr = msg.sender;
 
-      (uint256 realizedDeposit, uint256 taxAmount) = dripToken.calculateTransferTaxes(_addr, _amount);
+      (uint256 realizedDeposit, uint256 _taxAmount) = dripToken.calculateTransferTaxes(_addr, _amount);
       uint256 _total_amount = realizedDeposit;
+
+      require(_amount >= minimumAmount, "Minimum deposit");
 
       //Checkin for custody management.
       checkin();
-
-      require(_amount >= minimumAmount, "Minimum deposit");
 
       //If fresh account require a minimal amount of DRIP
       if (users[_addr].deposits == 0){

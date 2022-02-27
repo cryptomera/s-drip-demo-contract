@@ -21,15 +21,15 @@ async function main() {
   // await dripToken.deployed();
   // console.log("drip: ", dripToken.address);
 
-  // const Vault = await ethers.getContractFactory("Vault");
-  // const vault = await Vault.deploy(dripToken.address);
-  // await vault.deployed();
-  // console.log("vault: ", vault.address);
+  const Vault = await ethers.getContractFactory("Vault");
+  const vault = await Vault.deploy("0x4aaBc2691D89276B08898488E41d94FE050f3Aa7");
+  await vault.deployed();
+  console.log("vault: ", vault.address);
 
   const Faucet = await ethers.getContractFactory("FaucetV4");
   const faucet = await Faucet.deploy(
     "0x4aaBc2691D89276B08898488E41d94FE050f3Aa7",
-    "0x72dC28D8b9AB0d5bF09f03f88FA963597E3C32dc"
+    vault.address
   );
   await faucet.deployed();
   console.log("faucet: ", faucet.address);

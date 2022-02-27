@@ -1,8 +1,6 @@
 //SPDX-License-Identifier: Unlicense
 pragma solidity ^0.8.4;
 
-import "hardhat/console.sol";
-
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "./interfaces/ISwap.sol";
 import "./interfaces/IToken.sol";
@@ -293,9 +291,7 @@ contract FaucetV4 is Ownable {
       }
 
       dripVault.withdraw(to_payout);
-      console.log("balance:", dripToken.balanceOf(address(this)));
       uint256 realizedPayout = to_payout.mul(SafeMath.sub(100, ExitTax)).div(100); // 10% tax on withdraw
-      console.log("realizedPayout:", realizedPayout);
       require(
         dripToken.transfer(
           _addr,

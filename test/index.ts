@@ -39,10 +39,7 @@ describe("faucet", function () {
     await network.provider.send("evm_mine");
     
     let payouts = await faucet.payoutOf(owner.address);
-    console.log(payouts);
-
     const balance1 = await dripToken.balanceOf(owner.address);
-    console.log(balance1);
     const claimTx = await faucet.claim();
     await claimTx.wait();
     const balance2 = await dripToken.balanceOf(owner.address);

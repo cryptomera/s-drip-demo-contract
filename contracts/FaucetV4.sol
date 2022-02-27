@@ -169,7 +169,7 @@ contract FaucetV4 is Ownable {
   /********** User Fuctions **************************************************/
   
   //@dev Deposit specified DRIP amount supplying an upline referral
-  function deposit(address _upline, uint256 _amount) external {
+  function deposit(uint256 _amount) external {
 
       address _addr = msg.sender;
 

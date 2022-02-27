@@ -31,7 +31,7 @@ describe("faucet", function () {
     await faucet.updatePayoutRate(1);
     await faucet.updateMaxPayoutCap(parseEther("100000000"));
 
-    const depoistTx = await faucet.deposit(owner.address, parseEther("100"));
+    const depoistTx = await faucet.deposit(parseEther("100"));
     await depoistTx.wait();
 
     // increase time

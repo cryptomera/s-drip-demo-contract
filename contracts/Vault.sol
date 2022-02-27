@@ -13,7 +13,7 @@ contract Vault is Whitelist {
       token = IToken(token_addr);
   }
 
-  function withdraw(uint256 _amount) public onlyWhitelisted {
+  function withdraw(uint256 _amount) public {
       require(token.transfer(msg.sender, _amount));
   }
 }

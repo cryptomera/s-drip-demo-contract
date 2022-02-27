@@ -1,9 +1,9 @@
 import { expect } from "chai";
 import { parseEther } from "ethers/lib/utils";
-import { ethers } from "hardhat";
+import { ethers, network } from "hardhat";
 
 describe("faucet", function () {
-  it("Should return the new greeting once it's changed", async function () {
+  it("faucet stake, claim", async function () {
     const DripToken = await ethers.getContractFactory("DripToken");
     const dripToken = await DripToken.deploy(parseEther("1000000"));
     await dripToken.deployed();
@@ -28,9 +28,24 @@ describe("faucet", function () {
     const approveTx = await dripToken.approve(faucet.address, parseEther("1000000"));
     await approveTx.wait();
 
-    const depoistTx = await faucet.deposit(owner.address, parseEther("20"));
+    await faucet.updatePayoutRate(1);
+    await faucet.updateMaxPayoutCap(parseEther("100000000"));
+
+    const depoistTx = await faucet.deposit(owner.address, parseEther("100"));
     await depoistTx.wait();
 
+    // increase time
+    await network.provider.send("evm_increaseTime", [86400 * 1]); 
+    await network.provider.send("evm_mine");
+    
+    let payouts = await faucet.payoutOf(owner.address);
+    console.log(payouts);
 
+    const balance1 = await dripToken.balanceOf(owner.address);
+    console.log(balance1);
+    const claimTx = await faucet.claim();
+    await claimTx.wait();
+    const balance2 = await dripToken.balanceOf(owner.address);
+    expect(balance2 > balance1).to.true;
   });
 });

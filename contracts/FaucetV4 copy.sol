@@ -1,8 +1,6 @@
 //SPDX-License-Identifier: Unlicense
 pragma solidity ^0.8.4;
 
-import "hardhat/console.sol";
-
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "./interfaces/ISwap.sol";
 import "./interfaces/IToken.sol";
@@ -10,7 +8,7 @@ import "./interfaces/ITokenMint.sol";
 import "./interfaces/IDripVault.sol";
 import "./libraries/SafeMath.sol";
 
-contract FaucetV4 is Ownable {
+contract FaucetV4Copy is Ownable {
 
   using SafeMath for uint256;
 
@@ -65,7 +63,7 @@ contract FaucetV4 is Ownable {
   mapping(address => Custody) public custody;
 
   uint256 public CompoundTax;
-  uint256 public ExitTax = 10;
+  uint256 public ExitTax;
 
   uint256 private payoutRate;
   uint256 private ref_depth;
@@ -74,9 +72,9 @@ contract FaucetV4 is Ownable {
   uint256 private minimumInitial;
   uint256 public minimumAmount;
 
-  uint256 public deposit_bracket_size = 5;     // @BB 5% increase whale tax per 10000 tokens... 10 below cuts it at 50% since 5 * 10
+  uint256 public deposit_bracket_size;     // @BB 5% increase whale tax per 10000 tokens... 10 below cuts it at 50% since 5 * 10
   uint256 public max_payout_cap;           // 100k DRIP or 10% of supply
-  uint256 private deposit_bracket_max = 5;     // sustainability fee is (bracket * 5)
+  uint256 private deposit_bracket_max;     // sustainability fee is (bracket * 5)
 
   uint256[] public ref_balances;
 
@@ -169,7 +167,12 @@ contract FaucetV4 is Ownable {
   }
 
   /********** User Fuctions **************************************************/
-  
+  function checkin() public {
+      address _addr = msg.sender;
+      custody[_addr].last_checkin = block.timestamp;
+      emit Checkin(_addr, custody[_addr].last_checkin);
+  }
+
   //@dev Deposit specified DRIP amount supplying an upline referral
   function deposit(address _upline, uint256 _amount) external {
 
@@ -180,11 +183,15 @@ contract FaucetV4 is Ownable {
 
       require(_amount >= minimumAmount, "Minimum deposit");
 
+      //Checkin for custody management.
+      checkin();
 
       //If fresh account require a minimal amount of DRIP
       if (users[_addr].deposits == 0){
           require(_amount >= minimumInitial, "Initial deposit too low");
       }
+
+      _setUpline(_addr, _upline);
 
       uint256 taxedDivs;
       // Claim if divs are greater than 1% of the deposit
@@ -212,6 +219,8 @@ contract FaucetV4 is Ownable {
 
       _deposit(_addr, _total_amount);
 
+      _refPayout(_addr, realizedDeposit + taxedDivs, ref_bonus);
+
       emit Leaderboard(_addr, users[_addr].referrals, users[_addr].deposits, users[_addr].payouts, users[_addr].total_structure);
       total_txs++;
 
@@ -221,6 +230,8 @@ contract FaucetV4 is Ownable {
   function claim() external {
 
       //Checkin for custody management.  If a user rolls for themselves they are active
+      checkin();
+
       address _addr = msg.sender;
 
       _claim_out(_addr);
@@ -230,6 +241,7 @@ contract FaucetV4 is Ownable {
   function roll() public {
 
       //Checkin for custody management.  If a user rolls for themselves they are active
+      checkin();
 
       address _addr = msg.sender;
 
@@ -238,6 +250,31 @@ contract FaucetV4 is Ownable {
 
   /********** Internal Fuctions **************************************************/
 
+  //@dev Add direct referral and update team structure of upline
+  function _setUpline(address _addr, address _upline) internal {
+      /*
+      1) User must not have existing up-line
+      2) Up-line argument must not be equal to senders own address
+      3) Senders address must not be equal to the owner
+      4) Up-lined user must have a existing deposit
+      */
+      if(users[_addr].upline == address(0) && _upline != _addr && _addr != owner() && (users[_upline].deposit_time > 0 || _upline == owner() )) {
+          users[_addr].upline = _upline;
+          users[_upline].referrals++;
+
+          emit Upline(_addr, _upline);
+
+          total_users++;
+
+          for(uint8 i = 0; i < ref_depth; i++) {
+              if(_upline == address(0)) break;
+
+              users[_upline].total_structure++;
+
+              _upline = users[_upline].upline;
+          }
+      }
+  }
 
   //@dev Deposit
   function _deposit(address _addr, uint256 _amount) internal {
@@ -254,6 +291,103 @@ contract FaucetV4 is Ownable {
       //events
       emit NewDeposit(_addr, _amount);
 
+  }
+
+  //Payout upline; Bonuses are from 5 - 30% on the 1% paid out daily; Referrals only help
+  function _refPayout(address _addr, uint256 _amount, uint256 _refBonus) internal {
+      //for deposit _addr is the sender/depositor
+
+      address _up = users[_addr].upline;
+      uint256 _bonus = _amount * _refBonus / 100; // 10% of amount
+      uint256 _share = _bonus / 4;                // 2.5% of amount
+      uint256 _up_share = _bonus.sub(_share);     // 7.5% of amount
+      bool _team_found = false;
+
+      for(uint8 i = 0; i < ref_depth; i++) {
+
+          // If we have reached the top of the chain, the owner
+          if(_up == address(0)){
+              //The equivalent of looping through all available
+              users[_addr].ref_claim_pos = ref_depth;
+              break;
+          }
+
+          //We only match if the claim position is valid
+          if(users[_addr].ref_claim_pos == i) {
+              if (isBalanceCovered(_up, i + 1) && isNetPositive(_up)){
+
+                  //Team wallets are split 75/25%
+                  if(users[_up].referrals >= 5 && !_team_found) {
+
+                      //This should only be called once
+                      _team_found = true;
+
+                      (uint256 gross_payout_upline,,,) = payoutOf(_up);
+                      users[_up].accumulatedDiv = gross_payout_upline;
+                      users[_up].deposits += _up_share;
+                      users[_up].deposit_time = block.timestamp;
+
+                      (uint256 gross_payout_addr,,,) = payoutOf(_addr);
+                      users[_addr].accumulatedDiv = gross_payout_addr;
+                      users[_addr].deposits += _share;
+                      users[_addr].deposit_time = block.timestamp;
+
+                      //match accounting
+                      users[_up].match_bonus += _up_share;
+
+                      //Synthetic Airdrop tracking; team wallets get automatic airdrop benefits
+                      airdrops[_up].airdrops += _share;
+                      airdrops[_up].last_airdrop = block.timestamp;
+                      airdrops[_addr].airdrops_received += _share;
+
+                      //Global airdrops
+                      total_airdrops += _share;
+
+                      //Events
+                      emit NewDeposit(_addr, _share);
+                      emit NewDeposit(_up, _up_share);
+
+                      emit NewAirdrop(_up, _addr, _share, block.timestamp);
+                      emit MatchPayout(_up, _addr, _up_share);
+                  } else {
+
+                      (uint256 gross_payout,,,) = payoutOf(_up);
+                      users[_up].accumulatedDiv = gross_payout;
+                      users[_up].deposits += _bonus;
+                      users[_up].deposit_time = block.timestamp;
+
+
+                      //match accounting
+                      users[_up].match_bonus += _bonus;
+
+                      //events
+                      emit NewDeposit(_up, _bonus);
+                      emit MatchPayout(_up, _addr, _bonus);
+                  }
+
+                  if (users[_up].upline == address(0)){
+                      users[_addr].ref_claim_pos = ref_depth;
+                  }
+
+                  //The work has been done for the position; just break
+                  break;
+              }
+
+              users[_addr].ref_claim_pos += 1;
+
+          }
+
+          _up = users[_up].upline;
+
+      }
+
+      //Reward the next
+      users[_addr].ref_claim_pos += 1;
+
+      //Reset if we've hit the end of the line
+      if (users[_addr].ref_claim_pos >= ref_depth){
+          users[_addr].ref_claim_pos = 0;
+      }
   }
 
   //@dev General purpose heartbeat in the system used for custody/management planning
@@ -293,16 +427,10 @@ contract FaucetV4 is Ownable {
       }
 
       dripVault.withdraw(to_payout);
-      console.log("balance:", dripToken.balanceOf(address(this)));
+
       uint256 realizedPayout = to_payout.mul(SafeMath.sub(100, ExitTax)).div(100); // 10% tax on withdraw
-      console.log("realizedPayout:", realizedPayout);
-      require(
-        dripToken.transfer(
-          _addr,
-          realizedPayout
-        ),
-        "DRIP token transfer failed"
-      );
+      require(dripToken.transfer(address(msg.sender), realizedPayout));
+
       emit Leaderboard(_addr, users[_addr].referrals, users[_addr].deposits, users[_addr].payouts, users[_addr].total_structure);
       total_txs++;
 
@@ -323,6 +451,11 @@ contract FaucetV4 is Ownable {
 
           users[_addr].payouts += _gross_payout;
 
+          if (!isClaimedOut){
+              //Payout referrals
+              uint256 compoundTaxedPayout = _to_payout.mul(SafeMath.sub(100, CompoundTax)).div(100); // 5% tax on compounding
+              _refPayout(_addr, compoundTaxedPayout, 5);
+          }
       }
 
       require(_to_payout > 0, "Zero payout");
@@ -364,7 +497,25 @@ contract FaucetV4 is Ownable {
 
   }
 
-  
+  //@dev Returns whether BR34P balance matches level
+  function isBalanceCovered(address _addr, uint8 _level) public view returns (bool) {
+      if (users[_addr].upline == address(0)){
+          return true;
+      }
+      return balanceLevel(_addr) >= _level;
+  }
+
+  //@dev Returns the level of the address
+  function balanceLevel(address _addr) public view returns (uint8) {
+      uint8 _level = 0;
+      for (uint8 i = 0; i < ref_depth; i++) {
+          if (br34pToken.balanceOf(_addr) < ref_balances[i]) break;
+          _level += 1;
+      }
+
+      return _level;
+  }
+
   //@dev Returns custody info of _addr
   function getCustody(address _addr) public view returns (address _beneficiary, uint256 _heartbeat_interval, address _manager) {
       return (custody[_addr].beneficiary, custody[_addr].heartbeat_interval, custody[_addr].manager);

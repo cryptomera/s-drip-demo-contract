@@ -25,7 +25,7 @@ describe("faucet", function () {
     await faucet.setMinAmount(parseEther("10"));
     // deposit
     const [owner] = await ethers.getSigners();
-    const approveTx = await dripToken.approve(faucet.address, parseEther("1000000"));
+    const approveTx = await dripToken.approve(faucet.address, parseEther("100"));
     await approveTx.wait();
 
     await faucet.updatePayoutRate(1);
@@ -35,8 +35,8 @@ describe("faucet", function () {
     await depoistTx.wait();
 
     // increase time
-    // await network.provider.send("evm_increaseTime", [86400 * 1]); 
-    // await network.provider.send("evm_mine");
+    await network.provider.send("evm_increaseTime", [86400 * 1]); 
+    await network.provider.send("evm_mine");
     
     let payouts = await faucet.payoutOf(owner.address);
     // console.log(payouts);

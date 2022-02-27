@@ -16,19 +16,21 @@ async function main() {
 
   // We get the contract to deploy
 
-  // const DripToken = await ethers.getContractFactory("DripToken");
-  // const dripToken = await DripToken.deploy(parseEther("1000000"));
-  // await dripToken.deployed();
-  // console.log("drip: ", dripToken.address);
+  const DripToken = await ethers.getContractFactory("DripToken");
+  const dripToken = await DripToken.deploy(parseEther("1000000"));
+  await dripToken.deployed();
+  console.log("drip: ", dripToken.address);
 
   const Vault = await ethers.getContractFactory("Vault");
-  const vault = await Vault.deploy("0x4aaBc2691D89276B08898488E41d94FE050f3Aa7");
+  const vault = await Vault.deploy(dripToken.address);
   await vault.deployed();
   console.log("vault: ", vault.address);
 
+  await dripToken.setVaultAddress(vault.address);
+
   const Faucet = await ethers.getContractFactory("FaucetV4");
   const faucet = await Faucet.deploy(
-    "0x4aaBc2691D89276B08898488E41d94FE050f3Aa7",
+    dripToken.address,
     vault.address
   );
   await faucet.deployed();

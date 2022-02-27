@@ -1,10 +1,9 @@
 //SPDX-License-Identifier: Unlicense
 pragma solidity ^0.4.25;
 
-import "./Whitelist.sol";
 import "./interfaces/IToken.sol";
 
-contract Vault is Whitelist {
+contract Vault{
 
   IToken internal token; // address of the BEP20 token traded on this contract
 

@@ -17,7 +17,7 @@ async function main() {
   // We get the contract to deploy
 
   const DripToken = await ethers.getContractFactory("DripToken");
-  const dripToken = await DripToken.deploy(parseEther("1000000"));
+  const dripToken = await DripToken.deploy(100000);
   await dripToken.deployed();
   console.log("drip: ", dripToken.address);
 

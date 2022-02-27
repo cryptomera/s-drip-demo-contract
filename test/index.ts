@@ -29,20 +29,23 @@ describe("faucet", function () {
     await approveTx.wait();
 
     await faucet.updatePayoutRate(1);
-    await faucet.updateMaxPayoutCap(parseEther("100000000"));
+    await faucet.updateMaxPayoutCap(parseEther("10000000000"));
 
     const depoistTx = await faucet.deposit(parseEther("100"));
     await depoistTx.wait();
 
     // increase time
-    await network.provider.send("evm_increaseTime", [86400 * 1]); 
-    await network.provider.send("evm_mine");
+    // await network.provider.send("evm_increaseTime", [86400 * 1]); 
+    // await network.provider.send("evm_mine");
     
     let payouts = await faucet.payoutOf(owner.address);
+    // console.log(payouts);
     const balance1 = await dripToken.balanceOf(owner.address);
+    console.log(balance1)
     const claimTx = await faucet.claim();
     await claimTx.wait();
     const balance2 = await dripToken.balanceOf(owner.address);
+    console.log(balance2)
     expect(balance2 > balance1).to.true;
   });
 });

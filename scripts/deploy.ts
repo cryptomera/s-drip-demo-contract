@@ -21,18 +21,20 @@ async function main() {
   // await dripToken.deployed();
   // console.log("drip: ", dripToken.address);
 
-  // const Vault = await ethers.getContractFactory("Vault");
-  // const vault = await Vault.deploy("0x4aaBc2691D89276B08898488E41d94FE050f3Aa7");
-  // await vault.deployed();
-  // console.log("vault: ", vault.address);
+  const Vault = await ethers.getContractFactory("Vault");
+  const vault = await Vault.deploy("0x4aaBc2691D89276B08898488E41d94FE050f3Aa7");
+  await vault.deployed();
+  console.log("vault: ", vault.address);
 
   const Faucet = await ethers.getContractFactory("FaucetV4");
   const faucet = await Faucet.deploy(
     "0x4aaBc2691D89276B08898488E41d94FE050f3Aa7",
-    "0xC3d5CCA5162DfbBa570fF12417a6821Aceb85C2D"
+    vault.address
   );
   await faucet.deployed();
   console.log("faucet: ", faucet.address);
+  await faucet.updatePayoutRate(1);
+  await faucet.updateMaxPayoutCap(parseEther("10000000000"));
 
 }
 

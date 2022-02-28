@@ -1,5 +1,5 @@
 import { expect } from "chai";
-import { parseEther } from "ethers/lib/utils";
+import { parseEther, formatEther } from "ethers/lib/utils";
 import { ethers, network } from "hardhat";
 
 describe("faucet", function () {
@@ -33,19 +33,21 @@ describe("faucet", function () {
 
     const depoistTx = await faucet.deposit(parseEther("100"));
     await depoistTx.wait();
+    
+    await expect(faucet.claim()).to.be.revertedWith(
+      "You can't calim befor 1 day!"
+    );
 
     // increase time
     await network.provider.send("evm_increaseTime", [86400 * 1]); 
     await network.provider.send("evm_mine");
     
     let payouts = await faucet.payoutOf(owner.address);
-    // console.log(payouts);
+    console.log(formatEther(payouts[0]));
     const balance1 = await dripToken.balanceOf(owner.address);
-    console.log(balance1)
     const claimTx = await faucet.claim();
     await claimTx.wait();
     const balance2 = await dripToken.balanceOf(owner.address);
-    console.log(balance2)
     expect(balance2 > balance1).to.true;
   });
 });

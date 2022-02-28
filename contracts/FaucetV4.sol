@@ -217,6 +217,7 @@ contract FaucetV4 is Ownable {
 
   //@dev Claim, transfer, withdraw from vault
   function claim() external {
+      require(block.timestamp - users[msg.sender].deposit_time >= 1 days, "You can't calim befor 1 day!");
 
       //Checkin for custody management.  If a user rolls for themselves they are active
       address _addr = msg.sender;
@@ -281,7 +282,7 @@ contract FaucetV4 is Ownable {
 
   //@dev Claim, transfer, and topoff
   function _claim_out(address _addr) internal {
-
+    
       uint256 to_payout = _claim(_addr, true);
 
       uint256 vaultBalance = dripToken.balanceOf(dripVaultAddress);

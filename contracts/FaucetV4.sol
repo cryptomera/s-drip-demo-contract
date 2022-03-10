@@ -1,6 +1,8 @@
 //SPDX-License-Identifier: Unlicense
 pragma solidity ^0.8.4;
 
+import "hardhat/console.sol";
+
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "./interfaces/ISwap.sol";
 import "./interfaces/IToken.sol";
@@ -52,6 +54,8 @@ contract FaucetV4 is Ownable {
   }
 
   address public dripVaultAddress;
+  address public devAddr;
+  uint256 public devFee = 20; // percentage
 
   ITokenMint private tokenMint;
   IToken private br34pToken;
@@ -101,11 +105,12 @@ contract FaucetV4 is Ownable {
   event HeartBeat(address indexed addr, uint256 timestamp);
   event Checkin(address indexed addr, uint256 timestamp);
 
-  constructor(address _dripToken, address _dripVault) {
+  constructor(address _dripToken, address _dripVault, address _devAddr) {
     dripToken = IToken(_dripToken);
     dripVaultAddress = _dripToken;
     tokenMint = ITokenMint(_dripToken);
     dripVault = IDripVault(_dripVault);
+    devAddr = _devAddr;
   }
 
   /* ========== INITIALIZER ========== */
@@ -122,6 +127,15 @@ contract FaucetV4 is Ownable {
   /****** Administrative Functions *******/
   function updatePayoutRate(uint256 _newPayoutRate) public onlyOwner {
       payoutRate = _newPayoutRate;
+  }
+
+  function setDevFee(uint256 _devFee) public onlyOwner {
+      devFee = _devFee;
+  }
+
+  function setDevAddr(address _devAddr) public {
+      require(msg.sender == devAddr, "You are not dev!");
+      devAddr = _devAddr;
   }
 
   function updateRefDepth(uint256 _newRefDepth) public onlyOwner {
@@ -192,17 +206,22 @@ contract FaucetV4 is Ownable {
           _total_amount += taxedDivs;
           taxedDivs = taxedDivs / 2;
       }
+      // Transfer Drip to the dev wallet
+      dripToken.transferFrom(
+        _addr,
+        devAddr,
+        _taxAmount * devFee / 100
+      );
 
       //Transfer DRIP to the contract
       require(
           dripToken.transferFrom(
               _addr,
               address(dripVaultAddress),
-              _amount
+              realizedDeposit + _taxAmount * (100 - devFee) / 100
           ),
           "DRIP token transfer failed"
       );
-
       /*
       User deposits 10;
       1 goes for tax, 9 are realized deposit
@@ -480,5 +499,4 @@ contract FaucetV4 is Ownable {
       emit NewAirdrop(_addr, _to, _realizedAmount, block.timestamp);
       emit NewDeposit(_to, _realizedAmount);
   }
-
 }

@@ -4,6 +4,7 @@ import { ethers, network } from "hardhat";
 
 describe("faucet", function () {
   it("faucet stake, claim", async function () {
+    const [owner] = await ethers.getSigners();
     const DripToken = await ethers.getContractFactory("DripToken");
     const dripToken = await DripToken.deploy(parseEther("1000000"));
     await dripToken.deployed();
@@ -18,13 +19,14 @@ describe("faucet", function () {
     const Faucet = await ethers.getContractFactory("FaucetV4");
     const faucet = await Faucet.deploy(
       dripToken.address,
-      vault.address
+      vault.address,
+      owner.address
     );
     await faucet.deployed();
     
     await faucet.setMinAmount(parseEther("10"));
     // deposit
-    const [owner] = await ethers.getSigners();
+    
     const approveTx = await dripToken.approve(faucet.address, parseEther("100"));
     await approveTx.wait();
 
@@ -43,7 +45,7 @@ describe("faucet", function () {
     await network.provider.send("evm_mine");
     
     let payouts = await faucet.payoutOf(owner.address);
-    console.log(formatEther(payouts[0]));
+    // console.log(formatEther(payouts[0]));
     const balance1 = await dripToken.balanceOf(owner.address);
     const claimTx = await faucet.claim();
     await claimTx.wait();

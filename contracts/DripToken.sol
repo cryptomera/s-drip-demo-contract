@@ -12,8 +12,8 @@ contract DripToken is MintableToken {
       uint256 minted;
   }
 
-  string public constant name = "DRIP Token";
-  string public constant symbol = "DRIP";
+  string public constant name = "AVAD TOKEN";
+  string public constant symbol = "AVAD";
   uint8 public constant decimals = 18;
   uint256 public constant MAX_INT = 2**256 - 1;
   uint256 public constant targetSupply = MAX_INT;

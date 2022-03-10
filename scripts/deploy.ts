@@ -16,22 +16,24 @@ async function main() {
 
   // We get the contract to deploy
 
-  // const DripToken = await ethers.getContractFactory("DripToken");
-  // const dripToken = await DripToken.deploy(100000);
-  // await dripToken.deployed();
-  // console.log("drip: ", dripToken.address);
+  const DripToken = await ethers.getContractFactory("DripToken");
+  const dripToken = await DripToken.deploy(1000000);
+  await dripToken.deployed();
+  console.log("drip: ", dripToken.address);
 
-  // const Vault = await ethers.getContractFactory("Vault");
-  // const vault = await Vault.deploy(dripToken.address);
-  // await vault.deployed();
-  // console.log("vault: ", vault.address);
+  const Vault = await ethers.getContractFactory("Vault");
+  const vault = await Vault.deploy(dripToken.address);
+  await vault.deployed();
+  console.log("vault: ", vault.address);
 
-  // await dripToken.setVaultAddress(vault.address);
+  await dripToken.setVaultAddress(vault.address);
 
+  const [owner] = await ethers.getSigners();
   const Faucet = await ethers.getContractFactory("FaucetV4");
   const faucet = await Faucet.deploy(
-    "0x3ac08738E0F0C4Ce62F2Be7138f1eE59e0183e03",
-    "0x641247Ac977362A8B3e0cfc3CCf83b93E17D3561"
+    dripToken.address,
+    vault.address,
+    owner.address
   );
   await faucet.deployed();
   console.log("faucet: ", faucet.address);

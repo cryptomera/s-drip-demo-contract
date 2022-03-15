@@ -1,5 +1,0 @@
-export const addresses = {
-  WETH:  "0xA8F92827e0905017eE68Ddc7e6Bf35B5CfEf5A13",
-  factory:  "0x311674DFE4159a8139a6e4c762D1BcF33493193f",
-  router:  "0xA833b526f32DaCeAeC50b5ABFF21c3d57A739365"
-}

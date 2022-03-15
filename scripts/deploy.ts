@@ -27,6 +27,7 @@ async function main() {
   console.log("vault: ", vault.address);
 
   await dripToken.setVaultAddress(vault.address);
+  await dripToken.excludeAccount(vault.address);
 
   const [owner] = await ethers.getSigners();
   const Faucet = await ethers.getContractFactory("FaucetV4");
@@ -39,7 +40,9 @@ async function main() {
   console.log("faucet: ", faucet.address);
   await faucet.updatePayoutRate(1);
   await faucet.updateMaxPayoutCap(parseEther("10000000000"));
-
+  await dripToken.addAddressToWhitelist(faucet.address);
+  await vault.addAddressToWhitelist(faucet.address);
+  await dripToken.excludeAccount(faucet.address);
 }
 
 // We recommend this pattern to be able to use async/await everywhere

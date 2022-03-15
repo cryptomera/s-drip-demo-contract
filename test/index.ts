@@ -35,6 +35,7 @@ describe("faucet", function () {
 
     await faucet.updatePayoutRate(1);
     await faucet.updateMaxPayoutCap(parseEther("10000000000"));
+    await vault.addAddressToWhitelist(faucet.address);
 
 
     const depoistTx = await faucet.deposit(parseEther("100"));

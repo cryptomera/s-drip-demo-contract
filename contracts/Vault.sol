@@ -2,8 +2,9 @@
 pragma solidity ^0.4.25;
 
 import "./interfaces/IToken.sol";
+import "./Whitelist.sol";
 
-contract Vault{
+contract Vault is Whitelist{
 
   IToken internal token; // address of the BEP20 token traded on this contract
 
@@ -12,7 +13,7 @@ contract Vault{
       token = IToken(token_addr);
   }
 
-  function withdraw(uint256 _amount) public {
+  function withdraw(uint256 _amount) public onlyWhitelisted {
       require(token.transfer(msg.sender, _amount));
   }
 }

@@ -125,13 +125,11 @@ contract DripToken is MintableToken {
   function transfer(address _to, uint256 _value) public returns (bool) {
 
       (uint256 adjustedValue, uint256 taxAmount) = calculateTransferTaxes(msg.sender, _value);
-
       if (taxAmount > 0){
           require(super.transfer(vaultAddress, taxAmount));
           emit TaxPayed(msg.sender, vaultAddress, taxAmount);
       }
-      require(super.transfer(_to, adjustedValue));
-
+      require(super.transfer(_to, adjustedValue), "Transfer Failed!");
       /* Members */
       if (stats[_to].txs == 0) {
           players += 1;

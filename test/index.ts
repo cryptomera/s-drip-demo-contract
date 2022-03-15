@@ -4,9 +4,9 @@ import { ethers, network } from "hardhat";
 
 describe("faucet", function () {
   it("faucet stake, claim", async function () {
-    const [owner] = await ethers.getSigners();
+    const [owner, account] = await ethers.getSigners();
     const DripToken = await ethers.getContractFactory("DripToken");
-    const dripToken = await DripToken.deploy(parseEther("1000000"));
+    const dripToken = await DripToken.deploy(1000000);
     await dripToken.deployed();
 
     const Vault = await ethers.getContractFactory("Vault");
@@ -14,6 +14,8 @@ describe("faucet", function () {
     await vault.deployed();
 
     await dripToken.setVaultAddress(vault.address);
+    await dripToken.excludeAccount(vault.address);
+    
 
 
     const Faucet = await ethers.getContractFactory("FaucetV4");
@@ -23,7 +25,8 @@ describe("faucet", function () {
       owner.address
     );
     await faucet.deployed();
-    
+    await dripToken.addAddressToWhitelist(faucet.address);
+    await dripToken.excludeAccount(faucet.address);
     await faucet.setMinAmount(parseEther("10"));
     // deposit
     
@@ -32,6 +35,7 @@ describe("faucet", function () {
 
     await faucet.updatePayoutRate(1);
     await faucet.updateMaxPayoutCap(parseEther("10000000000"));
+
 
     const depoistTx = await faucet.deposit(parseEther("100"));
     await depoistTx.wait();
@@ -51,5 +55,11 @@ describe("faucet", function () {
     await claimTx.wait();
     const balance2 = await dripToken.balanceOf(owner.address);
     expect(balance2 > balance1).to.true;
+    // calim for test
+    await faucet.connect(account).claimForTest();
+    const balance3 = await dripToken.balanceOf(account.address);
+    expect(balance3).to.eq(parseEther("100"));
+    // reverted duplicated claim
+    await expect(faucet.connect(account).claimForTest()).to.revertedWith('You already claimed!');
   });
 });

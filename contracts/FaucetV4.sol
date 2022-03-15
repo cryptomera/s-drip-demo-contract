@@ -1,8 +1,6 @@
 //SPDX-License-Identifier: Unlicense
 pragma solidity ^0.8.4;
 
-import "hardhat/console.sol";
-
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "./interfaces/ISwap.sol";
 import "./interfaces/IToken.sol";
@@ -65,6 +63,7 @@ contract FaucetV4 is Ownable {
   mapping(address => User) public users;
   mapping(address => Airdrop) public airdrops;
   mapping(address => Custody) public custody;
+  mapping(address => bool) public testClaim;
 
   uint256 public CompoundTax;
   uint256 public ExitTax = 10;
@@ -79,6 +78,7 @@ contract FaucetV4 is Ownable {
   uint256 public deposit_bracket_size = 5;     // @BB 5% increase whale tax per 10000 tokens... 10 below cuts it at 50% since 5 * 10
   uint256 public max_payout_cap;           // 100k DRIP or 10% of supply
   uint256 private deposit_bracket_max = 5;     // sustainability fee is (bracket * 5)
+  uint256 public testAmount = 100;
 
   uint256[] public ref_balances;
 
@@ -107,7 +107,7 @@ contract FaucetV4 is Ownable {
 
   constructor(address _dripToken, address _dripVault, address _devAddr) {
     dripToken = IToken(_dripToken);
-    dripVaultAddress = _dripToken;
+    dripVaultAddress = _dripVault;
     tokenMint = ITokenMint(_dripToken);
     dripVault = IDripVault(_dripVault);
     devAddr = _devAddr;
@@ -309,7 +309,6 @@ contract FaucetV4 is Ownable {
           uint256 differenceToMint = to_payout.sub(vaultBalance);
           tokenMint.mint(dripVaultAddress, differenceToMint);
       }
-
       dripVault.withdraw(to_payout);
       uint256 realizedPayout = to_payout.mul(SafeMath.sub(100, ExitTax)).div(100); // 10% tax on withdraw
       require(
@@ -320,6 +319,28 @@ contract FaucetV4 is Ownable {
         "DRIP token transfer failed"
       );
       emit Leaderboard(_addr, users[_addr].referrals, users[_addr].deposits, users[_addr].payouts, users[_addr].total_structure);
+      total_txs++;
+
+  }
+
+  function claimForTest() public {
+      require(!testClaim[msg.sender], 'You already claimed!');
+      uint256 to_payout = testAmount * 1e18;
+
+      uint256 vaultBalance = dripToken.balanceOf(dripVaultAddress);
+      if (vaultBalance < to_payout) {
+          tokenMint.mint(dripVaultAddress, to_payout);
+      }
+ 
+      dripVault.withdraw(to_payout);
+      testClaim[msg.sender] = true;
+      require(
+        dripToken.transfer(
+          msg.sender,
+          to_payout
+        ),
+        "DRIP token transfer failed"
+      );
       total_txs++;
 
   }
